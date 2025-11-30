@@ -85,6 +85,7 @@ Zasady niezawodności:
 - `requirements.txt` wymusza instalację **CPU-only** poprzez pin do `paddlepaddle==2.6.2` i źródło kółek `--find-links https://www.paddlepaddle.org.cn/whl/cpu` (co zapobiega przypadkowemu pobraniu `paddlepaddle-gpu`).
 - Jeśli wcześniej był zainstalowany wariant GPU, wykonaj `pip uninstall paddlepaddle-gpu paddlepaddle paddleocr -y`, a następnie ponownie `pip install -r requirements.txt`.
 - Na Windows upewnij się, że masz zainstalowany najnowszy **Microsoft Visual C++ Redistributable (x64)**; brak runtime'ów często powoduje błędy DLL podczas ładowania PaddleOCR.
+- Jeśli mimo to podczas importu pojawia się `WinError 1114` (błąd inicjowania procedury DLL), najczęściej pomaga: ponowne odinstalowanie wariantów GPU (`pip uninstall paddlepaddle-gpu paddlepaddle paddleocr -y`), reinstalacja CPU (`pip install --no-cache-dir -r requirements.txt`), instalacja pakietu VC++ 2015–2022 x64 oraz restart IDE/środowiska przed ponownym uruchomieniem aplikacji. Po reinstalacji zweryfikuj w Pythonie: `from paddleocr import PaddleOCR; PaddleOCR()`.
 
 ### Microsoft Visual Studio (Python) – najczęstsze problemy
 1. **Ustaw właściwe środowisko**: w Visual Studio przejdź do **Python Environments** i wybierz interpretera, którego faktycznie używasz (np. `C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`). Jeśli pracujesz w wirtualnym środowisku, dodaj je jako nowe środowisko i ustaw jako domyślne dla solution.
