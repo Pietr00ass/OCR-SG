@@ -18,6 +18,7 @@ class OCRConfig:
     max_workers: int = 4
     temp_dir: Path = Path("./tmp")
     log_file: Path = Path("./ocr_app.log")
+    metrics_file: Path = Path("./metrics/ocr_metrics.csv")
     preprocess_options: dict = field(
         default_factory=lambda: {
             "grayscale": True,
@@ -33,6 +34,7 @@ class OCRConfig:
         """Create required directories if they do not exist."""
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
+        self.metrics_file.parent.mkdir(parents=True, exist_ok=True)
 
 
 config = OCRConfig()
