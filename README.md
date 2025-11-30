@@ -81,6 +81,31 @@ Zasady niezawodności:
 - Czyść stare instalacje przed zmianą wariantu (`pip uninstall torch torchvision torchaudio -y`).
 - W kodzie wywołuj `torch.cuda.is_available()` i przełączaj na CPU, gdy CUDA nie jest dostępna, aby aplikacja działała wszędzie.
 
+### PaddleOCR wyłącznie na CPU
+- `requirements.txt` wymusza instalację **CPU-only** poprzez pin do `paddlepaddle==2.6.2` i źródło kółek `--find-links https://www.paddlepaddle.org.cn/whl/cpu` (co zapobiega przypadkowemu pobraniu `paddlepaddle-gpu`).
+- Jeśli wcześniej był zainstalowany wariant GPU, wykonaj `pip uninstall paddlepaddle-gpu paddlepaddle paddleocr -y`, a następnie ponownie `pip install -r requirements.txt`.
+- Na Windows upewnij się, że masz zainstalowany najnowszy **Microsoft Visual C++ Redistributable (x64)**; brak runtime'ów często powoduje błędy DLL podczas ładowania PaddleOCR.
+- Jeśli mimo to podczas importu pojawia się `WinError 1114` (błąd inicjowania procedury DLL), najczęściej pomaga: ponowne odinstalowanie wariantów GPU (`pip uninstall paddlepaddle-gpu paddlepaddle paddleocr -y`), reinstalacja CPU (`pip install --no-cache-dir -r requirements.txt`), instalacja pakietu VC++ 2015–2022 x64 oraz restart IDE/środowiska przed ponownym uruchomieniem aplikacji. Po reinstalacji zweryfikuj w Pythonie: `from paddleocr import PaddleOCR; PaddleOCR()`.
+
+#### Błędy z c10.dll (PyTorch/EasyOCR/PaddleOCR)
+- Komunikat `WinError 1114` z odwołaniem do `c10.dll` zwykle oznacza pozostawione artefakty po instalacji GPU PyTorch albo brak VC++ runtime.
+- Wyczyść wszystkie zależności OCR i zainstaluj je ponownie w wersji CPU, bez cache:
+  ```bash
+  python -m pip uninstall -y torch torchvision torchaudio paddlepaddle paddleocr easyocr
+  python -m pip install --no-cache-dir -r requirements.txt
+  ```
+- Upewnij się, że w `requirements.txt` masz linię `--extra-index-url https://download.pytorch.org/whl/cpu` (domyślnie w repozytorium jest obecna) i korzystasz z 64-bitowego Pythona.
+- Zainstaluj **VC++ 2015–2022 x64** (sekcja powyżej), a po reinstalacji biblioteki zweryfikuj w interpreterze `import torch; import paddleocr`.
+
+#### Brak fontów PyQt5 (QFontDatabase)
+- PyQt5 nie dostarcza już fontów; jeśli w logach widzisz komunikat `Cannot find font directory .../PyQt5/Qt5/lib/fonts`, doinstaluj zestaw fontów (np. [DejaVu](https://dejavu-fonts.github.io/)).
+- Skopiuj katalog czcionek do folderu projektu i ustaw zmienną środowiskową przed startem aplikacji, np. na Windows:
+  ```powershell
+  $env:QT_QPA_FONTDIR="C:\\Users\\<użytkownik>\\source\\repos\\OCR-SG\\fonts"
+  python main.py
+  ```
+- Alternatywnie zainstaluj fonty systemowo, aby PyQt5 mógł je odnaleźć bez konfiguracji zmiennych środowiskowych.
+
 ### Microsoft Visual Studio (Python) – najczęstsze problemy
 1. **Ustaw właściwe środowisko**: w Visual Studio przejdź do **Python Environments** i wybierz interpretera, którego faktycznie używasz (np. `C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`). Jeśli pracujesz w wirtualnym środowisku, dodaj je jako nowe środowisko i ustaw jako domyślne dla solution.
 2. **Instaluj paczki w tym samym interpreterze**: w oknie wybranego środowiska kliknij **Manage Packages** i zainstaluj `PyMuPDF` albo użyj polecenia `python -m pip install -r requirements.txt` uruchomionego z tego samego interpretera (np. z wbudowanego **Python Interactive**). Unikaj gołego `pip`, jeśli wskazuje inny interpreter.
