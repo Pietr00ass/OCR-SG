@@ -1,7 +1,7 @@
 # Best-in-class OCR GUI (design draft)
 
 ## Architektura i pipeline
-Aplikacja jest modułowa i dzieli się na warstwę GUI (PyQt5), logikę OCR oraz narzędzia pomocnicze. Główne kroki przetwarzania: wczytanie plików (PDF/obrazy) → konwersja stron do obrazów (`core/pdf_loader.py`) → preprocessing w OpenCV (`core/image_preprocess.py`) sterowany z GUI → OCR wybranym silnikiem (`core/ocr_engine.py`) w procesach roboczych (`core/worker.py`) → czyszczenie tekstu (`core/postprocess.py`) → eksport (`core/exporter.py`). Logowanie jest scentralizowane w `logging_utils.py` i widoczne w GUI.
+Aplikacja jest modułowa i dzieli się na warstwę GUI (PyQt6), logikę OCR oraz narzędzia pomocnicze. Główne kroki przetwarzania: wczytanie plików (PDF/obrazy) → konwersja stron do obrazów (`core/pdf_loader.py`) → preprocessing w OpenCV (`core/image_preprocess.py`) sterowany z GUI → OCR wybranym silnikiem (`core/ocr_engine.py`) w procesach roboczych (`core/worker.py`) → czyszczenie tekstu (`core/postprocess.py`) → eksport (`core/exporter.py`). Logowanie jest scentralizowane w `logging_utils.py` i widoczne w GUI.
 
 ## Kluczowe pliki
 ```
@@ -49,7 +49,7 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 
 ### Rozwiązywanie problemów
 - Błąd `ModuleNotFoundError: No module named 'fitz'`: biblioteka PyMuPDF nie jest zainstalowana w środowisku, z którego uruchamiasz aplikację. Zainstaluj ją poleceniem `pip install PyMuPDF` lub ponownie wykonaj `pip install -r requirements.txt`, upewniając się, że korzystasz z tego samego interpretera Pythona, którego używa IDE.
-- Błąd `ImportError: libGL.so.1`: system nie posiada biblioteki OpenGL wymaganej przez PyQt5. Na Debianie/Ubuntu zainstaluj ją poleceniem `sudo apt-get install libgl1` (lub na RedHat/Fedora `sudo dnf install mesa-libGL`). W kontenerach warto też ustawić zmienne środowiskowe wymuszające tryb offscreen (robimy to automatycznie w `ocr_app/app.py`).
+- Błąd `ImportError: libGL.so.1`: system nie posiada biblioteki OpenGL wymaganej przez PyQt6. Na Debianie/Ubuntu zainstaluj ją poleceniem `sudo apt-get install libgl1` (lub na RedHat/Fedora `sudo dnf install mesa-libGL`). W kontenerach warto też ustawić zmienne środowiskowe wymuszające tryb offscreen (robimy to automatycznie w `ocr_app/app.py`).
 
 ### Instalacja Microsoft Visual C++ Redistributable (Windows)
 Jeśli PyTorch lub inne biblioteki zgłaszają błąd ładowania DLL (np. `c10.dll`), zwykle pomaga doinstalowanie najnowszych pakietów VC++:
@@ -97,14 +97,14 @@ Zasady niezawodności:
 - Upewnij się, że w `requirements.txt` masz linię `--extra-index-url https://download.pytorch.org/whl/cpu` (domyślnie w repozytorium jest obecna) i korzystasz z 64-bitowego Pythona.
 - Zainstaluj **VC++ 2015–2022 x64** (sekcja powyżej), a po reinstalacji biblioteki zweryfikuj w interpreterze `import torch; import paddleocr`.
 
-#### Brak fontów PyQt5 (QFontDatabase)
-- PyQt5 nie dostarcza już fontów; jeśli w logach widzisz komunikat `Cannot find font directory .../PyQt5/Qt5/lib/fonts`, doinstaluj zestaw fontów (np. [DejaVu](https://dejavu-fonts.github.io/)).
+#### Brak fontów PyQt6 (QFontDatabase)
+- PyQt6 nie dostarcza już fontów; jeśli w logach widzisz komunikat `Cannot find font directory .../PyQt6/Qt6/lib/fonts`, doinstaluj zestaw fontów (np. [DejaVu](https://dejavu-fonts.github.io/)).
 - Skopiuj katalog czcionek do folderu projektu i ustaw zmienną środowiskową przed startem aplikacji, np. na Windows:
   ```powershell
   $env:QT_QPA_FONTDIR="C:\\Users\\<użytkownik>\\source\\repos\\OCR-SG\\fonts"
   python main.py
   ```
-- Alternatywnie zainstaluj fonty systemowo, aby PyQt5 mógł je odnaleźć bez konfiguracji zmiennych środowiskowych.
+- Alternatywnie zainstaluj fonty systemowo, aby PyQt6 mógł je odnaleźć bez konfiguracji zmiennych środowiskowych.
 
 ### Microsoft Visual Studio (Python) – najczęstsze problemy
 1. **Ustaw właściwe środowisko**: w Visual Studio przejdź do **Python Environments** i wybierz interpretera, którego faktycznie używasz (np. `C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`). Jeśli pracujesz w wirtualnym środowisku, dodaj je jako nowe środowisko i ustaw jako domyślne dla solution.
