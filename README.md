@@ -50,6 +50,12 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 ### Rozwiązywanie problemów
 - Błąd `ModuleNotFoundError: No module named 'fitz'`: biblioteka PyMuPDF nie jest zainstalowana w środowisku, z którego uruchamiasz aplikację. Zainstaluj ją poleceniem `pip install PyMuPDF` lub ponownie wykonaj `pip install -r requirements.txt`, upewniając się, że korzystasz z tego samego interpretera Pythona, którego używa IDE.
 
+### Microsoft Visual Studio (Python) – najczęstsze problemy
+1. **Ustaw właściwe środowisko**: w Visual Studio przejdź do **Python Environments** i wybierz interpretera, którego faktycznie używasz (np. `C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`). Jeśli pracujesz w wirtualnym środowisku, dodaj je jako nowe środowisko i ustaw jako domyślne dla solution.
+2. **Instaluj paczki w tym samym interpreterze**: w oknie wybranego środowiska kliknij **Manage Packages** i zainstaluj `PyMuPDF` albo użyj polecenia `python -m pip install -r requirements.txt` uruchomionego z tego samego interpretera (np. z wbudowanego **Python Interactive**). Unikaj gołego `pip`, jeśli wskazuje inny interpreter.
+3. **Zweryfikuj instalację**: w Visual Studio uruchom w **Python Interactive** polecenie `python -m pip show PyMuPDF` – jeśli paczka nie jest widoczna, zainstaluj ją tam ponownie.
+4. **Ścieżka do Tesseract**: w `ocr_app/config.py` ustaw `tesseract_cmd` na lokalizację binarki (np. `"C:/Program Files/Tesseract-OCR/tesseract.exe"`); Visual Studio użyje tej samej konfiguracji co przy zwykłym uruchomieniu.
+
 ## Rozwój i dalsze pomysły
 - Profile preprocessingu zapisywane do pliku (np. JSON) i wybierane w GUI.
 - Kolejka zadań (np. Celery/Redis) do batchów w tle i komunikacji sieciowej.
