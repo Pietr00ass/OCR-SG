@@ -3,7 +3,15 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import NoReturn
+from types import ModuleType
+from typing import TYPE_CHECKING, NoReturn, TypeAlias
+
+if TYPE_CHECKING:
+    import PyQt6.QtWidgets as QtWidgets
+
+    QtWidgetsModule: TypeAlias = QtWidgets
+else:
+    QtWidgetsModule: TypeAlias = ModuleType
 
 
 def _prepare_qt_environment() -> None:
@@ -16,7 +24,7 @@ def _prepare_qt_environment() -> None:
     os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox")
 
 
-def _import_qt() -> "QtWidgets":
+def _import_qt() -> QtWidgetsModule:
     """Import PyQt6 with a clear error message for missing system libraries."""
 
     try:
