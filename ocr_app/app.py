@@ -20,18 +20,39 @@ def _import_qt() -> "QtWidgets":
     """Import PyQt6 with a clear error message for missing system libraries."""
 
     try:
-        from PyQt6 import QtWidgets
-    except ImportError as exc:  # pragma: no cover - environment-specific
-        missing_gl = "libGL.so.1" in str(exc)
-        help_hint = (
-            "Zainstaluj systemową bibliotekę OpenGL (np. `sudo apt-get install libgl1` "
-            "lub `sudo dnf install mesa-libGL`) i ponów próbę."
-        )
+        import PyQt6.QtWidgets as QtWidgets
+    except ModuleNotFoundError as exc:  # pragma: no cover - environment-specific
+        # PyQt6 or its Qt runtime is not installed at all.
         message = (
-            "Nie można załadować PyQt6. "
-            + ("Brakuje libGL.so.1. " if missing_gl else "")
-            + help_hint
+            "Nie można załadować PyQt6 (brak modułu QtWidgets). "
+            "Upewnij się, że zainstalowano `PyQt6` zgodnie z `requirements.txt` "
+            "(`pip install -r requirements.txt`)."
         )
+        raise SystemExit(message) from exc
+    except ImportError as exc:  # pragma: no cover - environment-specific
+        error_text = str(exc)
+        missing_gl = "libGL.so.1" in error_text
+        missing_qtwidgets = "QtWidgets" in error_text
+
+        if missing_gl:
+            message = (
+                "Nie można załadować PyQt6 (brak libGL.so.1). "
+                "Zainstaluj systemową bibliotekę OpenGL (np. `sudo apt-get install libgl1` "
+                "lub `sudo dnf install mesa-libGL`) i ponów próbę."
+            )
+        elif missing_qtwidgets:
+            message = (
+                "Nie można załadować modułu QtWidgets w PyQt6. "
+                "Upewnij się, że zainstalowano pełny pakiet PyQt6 zgodnie z `requirements.txt` "
+                "(`pip install --no-cache-dir -r requirements.txt`) oraz że używasz 64-bitowego Pythona. "
+                "Na Windowsie doinstaluj najnowszy Visual C++ Redistributable x64."
+            )
+        else:
+            message = (
+                "Nie można załadować PyQt6. "
+                "Sprawdź instalację (`pip install --no-cache-dir -r requirements.txt`)."
+            )
+
         raise SystemExit(message) from exc
     return QtWidgets
 

@@ -50,6 +50,7 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 ### Rozwiązywanie problemów
 - Błąd `ModuleNotFoundError: No module named 'fitz'`: biblioteka PyMuPDF nie jest zainstalowana w środowisku, z którego uruchamiasz aplikację. Zainstaluj ją poleceniem `pip install PyMuPDF` lub ponownie wykonaj `pip install -r requirements.txt`, upewniając się, że korzystasz z tego samego interpretera Pythona, którego używa IDE.
 - Błąd `ImportError: libGL.so.1`: system nie posiada biblioteki OpenGL wymaganej przez PyQt6. Na Debianie/Ubuntu zainstaluj ją poleceniem `sudo apt-get install libgl1` (lub na RedHat/Fedora `sudo dnf install mesa-libGL`). W kontenerach warto też ustawić zmienne środowiskowe wymuszające tryb offscreen (robimy to automatycznie w `ocr_app/app.py`).
+- Błąd `ImportError/ModuleNotFoundError: cannot import name 'QtWidgets' from 'PyQt6'`: środowisko nie ma pełnej instalacji PyQt6 (brak modułu QtWidgets). Uruchom `pip install --no-cache-dir -r requirements.txt`, a na Windows upewnij się, że interpreter jest 64-bitowy oraz zainstalowano najnowszy VC++ Redistributable (sekcja poniżej).
 
 ### Instalacja Microsoft Visual C++ Redistributable (Windows)
 Jeśli PyTorch lub inne biblioteki zgłaszają błąd ładowania DLL (np. `c10.dll`), zwykle pomaga doinstalowanie najnowszych pakietów VC++:
