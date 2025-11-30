@@ -1,18 +1,18 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.3.0
-torchvision>=0.18.0
-torchaudio>=2.3.0
+torch==2.3.0
+torchvision==0.18.0
+torchaudio==2.3.0
 PyQt6>=6.5
-pytesseract>=0.3.10
-opencv-python>=4.9.0.80
+pytesseract==0.3.10
+opencv-python==4.9.0.80
 numpy>=1.24
-Pillow>=10.3.0
+Pillow==10.3.0
 PyMuPDF>=1.24.0
 docx>=0.2.4
 python-docx>=1.1.0
 # PaddleOCR CPU build (avoid installing GPU wheels)
 --find-links https://www.paddlepaddle.org.cn/whl/cpu
 paddlepaddle==2.6.2   # CPU-only runtime required by PaddleOCR
-paddleocr>=2.7.0      # optional high-accuracy
+paddleocr==2.7.0      # optional high-accuracy
 
-EasyOCR>=1.7.1   # optional high-accuracy
+EasyOCR==1.7.1   # optional high-accuracy
+PyYAML==6.0.1

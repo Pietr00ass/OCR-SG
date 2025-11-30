@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 
 from PIL import Image
 
+from ..config import ModelConfig
 from .image_preprocess import preprocess_image
 from .ocr_engine import OcrEngine, OcrResult
 
@@ -21,10 +22,16 @@ class PageTask:
     languages: List[str]
     preprocess_options: Dict[str, bool]
     tesseract_cmd: str = ""
+    model_config: Optional[ModelConfig] = None
 
 
 def process_page(image: Image.Image, task: PageTask, preprocessed: Optional[Image.Image] = None) -> OcrResult:
     """Process one page: preprocess (if needed) then run OCR."""
     processed = preprocessed or preprocess_image(image, task.preprocess_options)[0]
-    engine = OcrEngine(task.engine_name, task.languages, task.tesseract_cmd)
+    engine = OcrEngine(
+        task.engine_name,
+        task.languages,
+        task.tesseract_cmd,
+        model_config=task.model_config,
+    )
     return engine.run(processed)
