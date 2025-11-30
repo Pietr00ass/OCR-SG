@@ -51,6 +51,36 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 - Błąd `ModuleNotFoundError: No module named 'fitz'`: biblioteka PyMuPDF nie jest zainstalowana w środowisku, z którego uruchamiasz aplikację. Zainstaluj ją poleceniem `pip install PyMuPDF` lub ponownie wykonaj `pip install -r requirements.txt`, upewniając się, że korzystasz z tego samego interpretera Pythona, którego używa IDE.
 - Błąd `ImportError: libGL.so.1`: system nie posiada biblioteki OpenGL wymaganej przez PyQt5. Na Debianie/Ubuntu zainstaluj ją poleceniem `sudo apt-get install libgl1` (lub na RedHat/Fedora `sudo dnf install mesa-libGL`). W kontenerach warto też ustawić zmienne środowiskowe wymuszające tryb offscreen (robimy to automatycznie w `ocr_app/app.py`).
 
+### Instalacja Microsoft Visual C++ Redistributable (Windows)
+Jeśli PyTorch lub inne biblioteki zgłaszają błąd ładowania DLL (np. `c10.dll`), zwykle pomaga doinstalowanie najnowszych pakietów VC++:
+1. Wejdź na oficjalną stronę Microsoft: [Latest supported Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
+2. Pobierz instalator **x64** (plik `…vc_redist.x64.exe`). Na 32-bitowych systemach dodatkowo `vc_redist.x86.exe`, ale dla większości współczesnych systemów wystarczy x64.
+3. Uruchom instalator jako administrator i zakończ kreator (opcje domyślne są wystarczające).
+4. Po instalacji zrestartuj komputer, aby nowe biblioteki zostały zarejestrowane.
+5. Jeśli błąd dotyczy aplikacji uruchamianej z wirtualnego środowiska, upewnij się, że używasz zgodnej wersji Pythona (64-bit) oraz odpowiedniego wariantu pakietu (np. CPU vs CUDA dla PyTorch).
+
+### PyTorch działający na każdym środowisku (CPU i CUDA)
+Domyślnie `requirements.txt` pobiera **uniwersalne buildy CPU** z repozytorium PyTorch (`--extra-index-url https://download.pytorch.org/whl/cpu`), więc instalacja `python -m pip install -r requirements.txt` zadziała na Windows/Linux/Mac bez CUDA.
+
+Jeśli masz kartę NVIDIA i chcesz użyć GPU:
+1. Odinstaluj build CPU: `python -m pip uninstall torch torchvision torchaudio -y`.
+2. Zainstaluj wariant CUDA dopasowany do sterownika według polecenia z [pytorch.org/get-started/locally](https://pytorch.org/get-started/locally) (np. `pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121`).
+3. Zweryfikuj instalację:
+   ```bash
+   python - <<'PY'
+import torch
+print('torch', torch.__version__)
+print('CUDA dostępne:', torch.cuda.is_available())
+print('Urządzenia CUDA:', torch.cuda.device_count())
+PY
+   ```
+   Jeśli CUDA pozostaje niedostępna, zaktualizuj sterownik GPU i upewnij się, że używasz zgodnego pakietu (np. `cu118`, `cu121`).
+
+Zasady niezawodności:
+- Używaj 64-bitowego Pythona (sprawdź: `python -c "import platform; print(platform.architecture())"`).
+- Czyść stare instalacje przed zmianą wariantu (`pip uninstall torch torchvision torchaudio -y`).
+- W kodzie wywołuj `torch.cuda.is_available()` i przełączaj na CPU, gdy CUDA nie jest dostępna, aby aplikacja działała wszędzie.
+
 ### Microsoft Visual Studio (Python) – najczęstsze problemy
 1. **Ustaw właściwe środowisko**: w Visual Studio przejdź do **Python Environments** i wybierz interpretera, którego faktycznie używasz (np. `C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`). Jeśli pracujesz w wirtualnym środowisku, dodaj je jako nowe środowisko i ustaw jako domyślne dla solution.
 2. **Instaluj paczki w tym samym interpreterze**: w oknie wybranego środowiska kliknij **Manage Packages** i zainstaluj `PyMuPDF` albo użyj polecenia `python -m pip install -r requirements.txt` uruchomionego z tego samego interpretera (np. z wbudowanego **Python Interactive**). Unikaj gołego `pip`, jeśli wskazuje inny interpreter.
