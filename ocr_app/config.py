@@ -155,41 +155,187 @@ def load_config(config_path: Optional[Path | str] = None) -> OCRConfig:
     path = Path(config_path) if config_path else Path(__file__).with_name("config.yml")
     if path.exists():
         loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        _update_dataclass(config, _normalize_schema(loaded))
+        _update_dataclass(config, _normalize_schema(loaded, source=str(path)))
     config.ensure_dirs()
     config.prepare_models()
     return config
 
 
-def _normalize_schema(raw: Dict) -> Dict:
-    """Map YAML keys to dataclass fields with backward compatibility."""
+def _normalize_schema(raw: Dict, *, source: str) -> Dict:
+    """Map YAML keys to dataclass fields with validation and clear errors."""
 
-    normalized = dict(raw)
-    models = normalized.get("models", {}) if isinstance(normalized.get("models", {}), dict) else {}
-    paddle_models = models.get("paddleocr", {}) if isinstance(models.get("paddleocr", {}), dict) else {}
-    easyocr_model_dir = models.get("easyocr", {}) if isinstance(models.get("easyocr", {}), dict) else {}
-    if paddle_models:
-        for key in ("det_model_dir", "rec_model_dir", "cls_model_dir"):
-            if key in paddle_models and paddle_models[key]:
-                paddle_models[key] = Path(paddle_models[key])
-        models["paddleocr"] = paddle_models
-    if isinstance(easyocr_model_dir, dict) and easyocr_model_dir.get("model_dir"):
-        easyocr_model_dir["model_dir"] = Path(easyocr_model_dir["model_dir"])
-        models["easyocr"] = easyocr_model_dir
-    if models:
-        normalized["models"] = models
-    if "pdf" in raw and isinstance(raw["pdf"], dict):
-        normalized["pdf_dpi"] = raw["pdf"].get("dpi", normalized.get("pdf_dpi", 300))
-    if "app" in raw and isinstance(raw["app"], dict):
-        normalized.setdefault("default_engine", raw["app"].get("default_engine", "tesseract"))
-        normalized.setdefault("max_workers", raw["app"].get("max_workers", 4))
-        normalized.setdefault("temp_dir", Path(raw["app"].get("temp_dir", "./tmp")))
-        normalized.setdefault("log_file", Path(raw["app"].get("log_file", "./ocr_app.log")))
-    if "languages" in raw and isinstance(raw["languages"], dict):
-        normalized.setdefault("available_languages", raw["languages"].get("available", ["pol", "eng"]))
-        normalized.setdefault("default_languages", raw["languages"].get("default", ["pol", "eng"]))
-    if "preprocess" in raw and isinstance(raw["preprocess"], dict):
-        normalized.setdefault("preprocess_options", raw["preprocess"])
+    if not isinstance(raw, dict):
+        raise ValueError(f"Plik {source} musi zawierać obiekt mapy (YAML dict) na poziomie root.")
+
+    errors: List[str] = []
+    normalized: Dict = {}
+
+    def _validate_dict(value, section: str) -> Optional[Dict]:
+        if not isinstance(value, dict):
+            errors.append(f"Sekcja {section} w {source} musi być słownikiem.")
+            return None
+        return value
+
+    def _validate_path(value, section: str) -> Optional[Path]:
+        if value is None:
+            return None
+        if isinstance(value, (str, Path)):
+            return Path(value)
+        errors.append(f"Pole {section} w {source} musi być ścieżką (string lub Path).")
+        return None
+
+    allowed_root = {"models", "languages", "pdf", "app", "preprocess"}
+    for key in raw:
+        if key not in allowed_root:
+            errors.append(f"Nieznany klucz na poziomie root: {key} (plik {source}).")
+
+    # Models
+    models_raw = raw.get("models", {})
+    models_normalized: Dict = {}
+    models_dict = _validate_dict(models_raw, "models") if models_raw else {}
+    if models_dict is not None:
+        allowed_models = {"tesseract_cmd", "paddleocr", "easyocr", "auto_download_missing"}
+        for key in models_dict:
+            if key not in allowed_models:
+                errors.append(f"Nieznany klucz models.{key} w {source}.")
+
+        auto_download = models_dict.get("auto_download_missing", True)
+        if "auto_download_missing" in models_dict:
+            if isinstance(auto_download, bool):
+                models_normalized["auto_download_missing"] = auto_download
+            else:
+                errors.append("models.auto_download_missing musi być wartością logiczną (true/false).")
+                auto_download = True
+
+        if "tesseract_cmd" in models_dict:
+            if isinstance(models_dict["tesseract_cmd"], str):
+                models_normalized["tesseract_cmd"] = models_dict["tesseract_cmd"]
+            else:
+                errors.append("models.tesseract_cmd musi być tekstem.")
+
+        if "paddleocr" in models_dict:
+            paddle = _validate_dict(models_dict.get("paddleocr"), "models.paddleocr")
+            if paddle is not None:
+                allowed_paddle = {"det_model_dir", "rec_model_dir", "cls_model_dir"}
+                for key in paddle:
+                    if key not in allowed_paddle:
+                        errors.append(f"Nieznany klucz models.paddleocr.{key} w {source}.")
+                paddle_normalized = {}
+                for key in allowed_paddle:
+                    if key in paddle:
+                        path_value = _validate_path(paddle[key], f"models.paddleocr.{key}")
+                        if path_value:
+                            if not path_value.exists() and auto_download is False:
+                                errors.append(
+                                    f"Ścieżka {key} w sekcji models.paddleocr nie istnieje: {path_value}"
+                                )
+                            paddle_normalized[key] = path_value
+                if paddle_normalized:
+                    models_normalized["paddleocr"] = paddle_normalized
+
+        if "easyocr" in models_dict:
+            easyocr = _validate_dict(models_dict.get("easyocr"), "models.easyocr")
+            if easyocr is not None:
+                allowed_easyocr = {"model_dir"}
+                for key in easyocr:
+                    if key not in allowed_easyocr:
+                        errors.append(f"Nieznany klucz models.easyocr.{key} w {source}.")
+                if "model_dir" in easyocr:
+                    path_value = _validate_path(easyocr.get("model_dir"), "models.easyocr.model_dir")
+                    if path_value:
+                        if not path_value.exists() and auto_download is False:
+                            errors.append(
+                                f"Ścieżka models.easyocr.model_dir nie istnieje: {path_value}"
+                            )
+                        models_normalized.setdefault("easyocr", {})["model_dir"] = path_value
+
+    if models_normalized:
+        normalized["models"] = models_normalized
+
+    # Languages
+    if "languages" in raw:
+        languages = _validate_dict(raw["languages"], "languages")
+        if languages is not None:
+            allowed_lang_keys = {"available", "default"}
+            for key in languages:
+                if key not in allowed_lang_keys:
+                    errors.append(f"Nieznany klucz languages.{key} w {source}.")
+            for key, target in (("available", "available_languages"), ("default", "default_languages")):
+                if key in languages:
+                    values = languages[key]
+                    if not isinstance(values, list) or not all(isinstance(val, str) for val in values):
+                        errors.append(f"languages.{key} musi być listą stringów.")
+                    else:
+                        normalized[target] = values
+
+    # PDF
+    if "pdf" in raw:
+        pdf = _validate_dict(raw["pdf"], "pdf")
+        if pdf is not None:
+            for key in pdf:
+                if key != "dpi":
+                    errors.append(f"Nieznany klucz pdf.{key} w {source}.")
+            if "dpi" in pdf:
+                dpi = pdf["dpi"]
+                if not isinstance(dpi, int):
+                    errors.append("pdf.dpi musi być liczbą całkowitą.")
+                elif dpi <= 0:
+                    errors.append("pdf.dpi musi być dodatnią liczbą całkowitą.")
+                else:
+                    normalized["pdf_dpi"] = dpi
+
+    # App
+    if "app" in raw:
+        app = _validate_dict(raw["app"], "app")
+        if app is not None:
+            allowed_app = {"default_engine", "max_workers", "temp_dir", "log_file"}
+            for key in app:
+                if key not in allowed_app:
+                    errors.append(f"Nieznany klucz app.{key} w {source}.")
+            if "default_engine" in app:
+                if isinstance(app["default_engine"], str):
+                    normalized.setdefault("default_engine", app["default_engine"])
+                else:
+                    errors.append("app.default_engine musi być tekstem.")
+            if "max_workers" in app:
+                max_workers = app["max_workers"]
+                if not isinstance(max_workers, int):
+                    errors.append("app.max_workers musi być liczbą całkowitą.")
+                elif max_workers <= 0:
+                    errors.append("app.max_workers musi być dodatnią liczbą całkowitą.")
+                else:
+                    normalized.setdefault("max_workers", max_workers)
+            if "temp_dir" in app:
+                path_value = _validate_path(app["temp_dir"], "app.temp_dir")
+                if path_value is not None:
+                    normalized.setdefault("temp_dir", path_value)
+            if "log_file" in app:
+                path_value = _validate_path(app["log_file"], "app.log_file")
+                if path_value is not None:
+                    normalized.setdefault("log_file", path_value)
+
+    # Preprocess
+    if "preprocess" in raw:
+        preprocess = _validate_dict(raw["preprocess"], "preprocess")
+        if preprocess is not None:
+            allowed_preprocess = {
+                "grayscale",
+                "denoise",
+                "threshold",
+                "deskew",
+                "scale_up",
+                "remove_background",
+            }
+            for key in preprocess:
+                if key not in allowed_preprocess:
+                    errors.append(f"Nieznany klucz preprocess.{key} w {source}.")
+                elif not isinstance(preprocess[key], bool):
+                    errors.append(f"preprocess.{key} musi być wartością logiczną (true/false).")
+            normalized.setdefault("preprocess_options", preprocess)
+
+    if errors:
+        raise ValueError("\n".join(errors))
+
     return normalized
 
 
