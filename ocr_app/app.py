@@ -14,14 +14,41 @@ else:
     QtWidgetsModule: TypeAlias = ModuleType
 
 
+def _is_headless_environment() -> bool:
+    """Return True when no display server is available."""
+
+    has_display = any(os.environ.get(var) for var in ("DISPLAY", "WAYLAND_DISPLAY"))
+    return not sys.platform.startswith("win") and not has_display and "QT_QPA_PLATFORM" not in os.environ
+
+
+def _set_default_font_dir() -> None:
+    """Point Qt to a known font directory when running headless."""
+
+    if "QT_QPA_FONTDIR" in os.environ:
+        return
+
+    candidate_paths = (
+        "/usr/share/fonts/truetype/dejavu",
+        "/usr/share/fonts/dejavu",
+    )
+    for path in candidate_paths:
+        if os.path.isdir(path):
+            os.environ["QT_QPA_FONTDIR"] = path
+            break
+
+
 def _prepare_qt_environment() -> None:
     """Configure Qt to work in headless containers and avoid sandbox issues."""
 
-    # Force software rendering to sidestep missing GPU/GL drivers in CI or containers.
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    # Chromium-based components (e.g., QtWebEngine) require the flag below in containers.
-    os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
-    os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox")
+    headless = _is_headless_environment()
+
+    if headless:
+        # Force software rendering to sidestep missing GPU/GL drivers in CI or containers.
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        # Chromium-based components (e.g., QtWebEngine) require the flag below in containers.
+        os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
+        os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox")
+        _set_default_font_dir()
 
 
 def _import_qt() -> QtWidgetsModule:
