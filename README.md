@@ -81,6 +81,11 @@ Zasady niezawodności:
 - Czyść stare instalacje przed zmianą wariantu (`pip uninstall torch torchvision torchaudio -y`).
 - W kodzie wywołuj `torch.cuda.is_available()` i przełączaj na CPU, gdy CUDA nie jest dostępna, aby aplikacja działała wszędzie.
 
+### PaddleOCR wyłącznie na CPU
+- `requirements.txt` wymusza instalację **CPU-only** poprzez pin do `paddlepaddle==2.6.2` i źródło kółek `--find-links https://www.paddlepaddle.org.cn/whl/cpu` (co zapobiega przypadkowemu pobraniu `paddlepaddle-gpu`).
+- Jeśli wcześniej był zainstalowany wariant GPU, wykonaj `pip uninstall paddlepaddle-gpu paddlepaddle paddleocr -y`, a następnie ponownie `pip install -r requirements.txt`.
+- Na Windows upewnij się, że masz zainstalowany najnowszy **Microsoft Visual C++ Redistributable (x64)**; brak runtime'ów często powoduje błędy DLL podczas ładowania PaddleOCR.
+
 ### Microsoft Visual Studio (Python) – najczęstsze problemy
 1. **Ustaw właściwe środowisko**: w Visual Studio przejdź do **Python Environments** i wybierz interpretera, którego faktycznie używasz (np. `C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`). Jeśli pracujesz w wirtualnym środowisku, dodaj je jako nowe środowisko i ustaw jako domyślne dla solution.
 2. **Instaluj paczki w tym samym interpreterze**: w oknie wybranego środowiska kliknij **Manage Packages** i zainstaluj `PyMuPDF` albo użyj polecenia `python -m pip install -r requirements.txt` uruchomionego z tego samego interpretera (np. z wbudowanego **Python Interactive**). Unikaj gołego `pip`, jeśli wskazuje inny interpreter.
