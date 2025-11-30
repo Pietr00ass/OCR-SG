@@ -1,75 +1,112 @@
-"""Entry point for running the OCR app or CLI pipeline."""
+"""Entry point for running the OCR app or CLI OCR."""
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 from typing import List
 
-from PIL import Image
-
-from ocr_app import detection, preprocess
-from ocr_app.core.ocr_engine import OcrEngine
+from ocr_app.app import main as gui_main
+from ocr_app.config import config
+from ocr_app.core.ocr_service import gather_paths, run_ocr_on_path
+from ocr_app.logging_utils import setup_logging
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="OCR pipeline (GUI or CLI)")
-    parser.add_argument("--image", type=Path, help="Ścieżka do pliku graficznego dla trybu CLI")
-    parser.add_argument(
+    parser = argparse.ArgumentParser(description="OCR application")
+    subparsers = parser.add_subparsers(dest="command")
+
+    subparsers.add_parser("gui", help="Uruchom interfejs graficzny (domyślne)")
+
+    ocr_parser = subparsers.add_parser("ocr", help="Uruchom OCR na plikach lub katalogach")
+    ocr_parser.add_argument("paths", nargs="+", help="Ścieżki do plików lub katalogów")
+    ocr_parser.add_argument(
         "--engine",
-        default="tesseract",
         choices=["tesseract", "paddleocr", "easyocr"],
-        help="Silnik OCR do użycia w trybie CLI",
+        default=config.default_engine,
+        help="Silnik OCR",
     )
-    parser.add_argument(
+    ocr_parser.add_argument(
         "--languages",
-        default="pol,eng",
-        help="Lista języków rozdzielona przecinkami dla trybu CLI",
+        nargs="+",
+        default=config.default_languages,
+        help="Lista języków (np. pol eng)",
     )
-    parser.add_argument(
-        "--detector",
-        default="easyocr",
-        choices=["easyocr", "contours"],
-        help="Detektor regionów tekstu w trybie CLI",
+    ocr_parser.add_argument("--dpi", type=int, default=config.pdf_dpi, help="DPI dla PDF")
+    ocr_parser.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Przeszukuj katalogi rekursywnie",
     )
+    ocr_parser.add_argument(
+        "--json-output",
+        type=Path,
+        help="Zapisz wynik w formacie JSON do wskazanego pliku",
+    )
+    ocr_parser.add_argument(
+        "--tesseract-cmd",
+        type=str,
+        default=config.tesseract_cmd,
+        help="Ścieżka do binarki tesseract (opcjonalnie)",
+    )
+
     return parser.parse_args()
 
 
-def _run_cli_pipeline(image_path: Path, engine_name: str, languages: List[str], detector: str) -> str:
-    """Minimalny pipeline: preprocess → detekcja → rozpoznanie."""
+def _print_human_readable(path: Path, languages: List[str], engine: str, results) -> None:
+    print(f"=== {path} ===")
+    print(f"Silnik: {engine}; Języki: {', '.join(languages)}")
+    for page in results:
+        print(f"\n-- Strona {page.page_index} --")
+        if page.confidence is not None:
+            print(f"Pewność: {page.confidence:.2f}")
+        print(page.text)
 
-    image = Image.open(image_path)
-    processed = preprocess.apply_preprocessing(image)
-    boxes = detection.detect_text_regions(
-        processed, detector=detector, languages=languages if languages else None
-    )
 
-    engine = OcrEngine(engine_name, languages)
-    results: List[str] = []
+def _run_cli(args: argparse.Namespace) -> None:
+    logger = setup_logging()
+    input_paths = gather_paths([Path(p) for p in args.paths], recursive=args.recursive)
+    if not input_paths:
+        raise SystemExit("Nie znaleziono plików do przetworzenia")
 
-    if boxes:
-        for bbox in boxes:
-            region = preprocess.crop(processed, bbox)
-            results.append(engine.run(region).text.strip())
-    else:
-        results.append(engine.run(processed).text.strip())
+    all_results = []
+    for path in input_paths:
+        pages = run_ocr_on_path(
+            path,
+            args.engine,
+            args.languages,
+            preprocess_options=config.preprocess_options,
+            dpi=args.dpi,
+            tesseract_cmd=args.tesseract_cmd,
+        )
+        _print_human_readable(path, args.languages, args.engine, pages)
+        all_results.append(
+            {
+                "source": str(path),
+                "engine": args.engine,
+                "languages": args.languages,
+                "pages": [
+                    {
+                        "page": page.page_index,
+                        "text": page.text,
+                        "confidence": page.confidence,
+                        "boxes": page.boxes,
+                    }
+                    for page in pages
+                ],
+            }
+        )
 
-    combined = "\n".join(filter(None, results))
-    print(combined)
-    return combined
+    if args.json_output:
+        args.json_output.write_text(json.dumps(all_results, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("Zapisano wynik do %s", args.json_output)
 
 
 def main() -> None:
     args = _parse_args()
-    if args.image:
-        _run_cli_pipeline(
-            image_path=args.image,
-            engine_name=args.engine,
-            languages=[lang.strip() for lang in args.languages.split(",") if lang.strip()],
-            detector=args.detector,
-        )
+    if args.command == "ocr":
+        _run_cli(args)
     else:
-        from ocr_app.app import main as gui_main
-
         gui_main()
 
 

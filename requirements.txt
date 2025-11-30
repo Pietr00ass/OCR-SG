@@ -14,5 +14,6 @@ python-docx>=1.1.0
 paddlepaddle==2.6.2   # CPU-only runtime required by PaddleOCR
 paddleocr==2.7.0      # optional high-accuracy
 
-EasyOCR==1.7.1   # optional high-accuracy
-PyYAML==6.0.1
+EasyOCR>=1.7.1   # optional high-accuracy
+fastapi>=0.110.0
+uvicorn>=0.29.0
