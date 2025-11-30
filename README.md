@@ -21,6 +21,7 @@ Jeśli chcesz uruchomić build z CUDA, po instalacji wykonaj kroki z sekcji „P
 ## Przykłady użycia
 ### GUI / CLI
 - GUI: `python main.py`
+- CLI (wsadowy): `python -m ocr_app.cli --help`
 - CLI (tryb wsadowy, przykład OCR jednego pliku bez GUI):
   ```bash
   python - <<'PY'
@@ -36,6 +37,12 @@ for page_index, image in load_pdf_pages(Path("sample.pdf"), dpi=300):
     print(f"Strona {page_index}: {result.text[:500]}")
 PY
   ```
+
+Przykłady użycia nowego CLI (`python -m ocr_app.cli`):
+- PDF → TXT z domyślnym silnikiem z `config.yml`: `python -m ocr_app.cli pdf samples/sample.pdf --output-dir outputs`
+- PDF → DOCX z wymuszeniem silnika i DPI: `python -m ocr_app.cli pdf samples/sample.pdf --engine paddleocr --languages pol eng --dpi 300 --format docx`
+- Wiele obrazów → TXT w katalogu `results`: `python -m ocr_app.cli images scans/page1.png scans/page2.png --engine easyocr --languages eng --output-dir results`
+- Własny plik konfiguracyjny: `python -m ocr_app.cli --config custom_config.yml pdf docs/invoice.pdf`
 
 ### API (fragment konfiguracji w kodzie)
 ```python
