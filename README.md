@@ -106,6 +106,12 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 }
 ```
 
+### Walidacja konfiguracji
+`load_config` waliduje zawartość `config.yml` i zgłasza klarowne wyjątki `ValueError` przy błędach. Przykładowe komunikaty:
+- nieznany klucz na poziomie root: `Nieznany klucz na poziomie root: foo (plik config.yml).`
+- nieistniejąca ścieżka modelu przy wyłączonym auto-pobieraniu: `Ścieżka det_model_dir w sekcji models.paddleocr nie istnieje: /nonexistent/det`
+- niepoprawny typ/wartość liczbowa: `pdf.dpi musi być dodatnią liczbą całkowitą.`
+
 ## Uruchomienie
 1. Zainstaluj zależności: `pip install -r requirements.txt`.
 2. Ustaw ścieżkę do Tesseract (Windows) w `ocr_app/config.py` (`tesseract_cmd = "C:/Program Files/Tesseract-OCR/tesseract.exe"`).
