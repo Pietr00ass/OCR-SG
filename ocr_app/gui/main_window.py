@@ -149,11 +149,29 @@ class MainWindow(QtWidgets.QMainWindow):
         results = []
         for file_path in files:
             if file_path.suffix.lower() == ".pdf":
-                page_images = [img for _, img in pdf_loader.load_pdf_pages(file_path, dpi=dpi)]
+                try:
+                    page_images = [img for _, img in pdf_loader.load_pdf_pages(file_path, dpi=dpi)]
+                except Exception as exc:  # pragma: no cover - GUI dialog
+                    self.logger.exception("Nie udało się wczytać PDF: %s", file_path)
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Błąd PDF",
+                        f"Nie udało się wczytać pliku {file_path.name}: {exc}",
+                    )
+                    continue
             else:
                 from PIL import Image
 
-                page_images = [Image.open(file_path)]
+                try:
+                    page_images = [Image.open(file_path)]
+                except Exception as exc:  # pragma: no cover - GUI dialog
+                    self.logger.exception("Nie udało się wczytać obrazu: %s", file_path)
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Błąd obrazu",
+                        f"Nie udało się otworzyć pliku {file_path.name}: {exc}",
+                    )
+                    continue
 
             page_texts = []
             for page_index, image in enumerate(page_images):
