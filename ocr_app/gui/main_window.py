@@ -1,10 +1,10 @@
-"""PyQt5 GUI for the OCR application."""
+"""PyQt6 GUI for the OCR application."""
 from __future__ import annotations
 
 from pathlib import Path
 from typing import List
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 from ..config import config
 from ..core import pdf_loader
@@ -44,7 +44,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lang_list = QtWidgets.QListWidget()
         for lang in config.available_languages:
             item = QtWidgets.QListWidgetItem(lang)
-            item.setCheckState(QtCore.Qt.Checked if lang in config.default_languages else QtCore.Qt.Unchecked)
+            item.setCheckState(
+                QtCore.Qt.CheckState.Checked
+                if lang in config.default_languages
+                else QtCore.Qt.CheckState.Unchecked
+            )
             self.lang_list.addItem(item)
         lang_group = QtWidgets.QGroupBox("Języki")
         lang_layout = QtWidgets.QVBoxLayout(lang_group)
@@ -75,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addLayout(controls)
 
         self.file_list = QtWidgets.QListWidget()
-        self.file_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.file_list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.file_list.setAcceptDrops(True)
         self.file_list.dragEnterEvent = self._drag_enter
         self.file_list.dropEvent = self._drop_event
@@ -86,8 +90,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_view.setReadOnly(True)
         self.preview_orig = QtWidgets.QLabel("Podgląd oryginału")
         self.preview_proc = QtWidgets.QLabel("Podgląd po preprocessingu")
-        self.preview_orig.setAlignment(QtCore.Qt.AlignCenter)
-        self.preview_proc.setAlignment(QtCore.Qt.AlignCenter)
+        self.preview_orig.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.preview_proc.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         split.addWidget(self.log_view)
         preview_split = QtWidgets.QSplitter()
@@ -129,7 +133,7 @@ class MainWindow(QtWidgets.QMainWindow):
         langs = []
         for i in range(self.lang_list.count()):
             item = self.lang_list.item(i)
-            if item.checkState() == QtCore.Qt.Checked:
+            if item.checkState() == QtCore.Qt.CheckState.Checked:
                 langs.append(item.text())
         return langs or config.default_languages
 
@@ -199,5 +203,9 @@ class MainWindow(QtWidgets.QMainWindow):
             qim = ImageQt.ImageQt(img)
             return QtGui.QPixmap.fromImage(qim)
 
-        self.preview_orig.setPixmap(to_pixmap(original).scaled(400, 400, QtCore.Qt.KeepAspectRatio))
-        self.preview_proc.setPixmap(to_pixmap(processed).scaled(400, 400, QtCore.Qt.KeepAspectRatio))
+        self.preview_orig.setPixmap(
+            to_pixmap(original).scaled(400, 400, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        )
+        self.preview_proc.setPixmap(
+            to_pixmap(processed).scaled(400, 400, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        )
