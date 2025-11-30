@@ -24,25 +24,28 @@ Jeśli chcesz uruchomić build z CUDA, po instalacji wykonaj kroki z sekcji „P
 - CLI (tryb wsadowy, przykład OCR jednego pliku bez GUI):
   ```bash
   python - <<'PY'
-from ocr_app.core.ocr_engine import OCREngine
-from ocr_app.core.pdf_loader import load_pdf
+from pathlib import Path
 
-pages = load_pdf("sample.pdf", dpi=300)
-engine = OCREngine(engine_name="tesseract", languages=["pol", "eng"])
-text = engine.run_ocr(pages)
-print(text[:500])
+from ocr_app.core.ocr_engine import OcrEngine
+from ocr_app.core.pdf_loader import load_pdf_pages
+
+engine = OcrEngine(engine_name="tesseract", languages=["pol", "eng"])
+
+for page_index, image in load_pdf_pages(Path("sample.pdf"), dpi=300):
+    result = engine.run(image)
+    print(f"Strona {page_index}: {result.text[:500]}")
 PY
   ```
 
 ### API (fragment konfiguracji w kodzie)
 ```python
-from ocr_app.config import Config
+from ocr_app.config import OCRConfig
 
-cfg = Config()
-cfg.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract.exe"
+cfg = OCRConfig()
+cfg.models.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract.exe"
 cfg.default_languages = ["pol", "eng"]
 ```
-Następnie przekaż `cfg` do komponentów GUI/workerów (np. podczas tworzenia `MainWindow` lub `OCREngine`).
+Następnie przekaż `cfg` do komponentów GUI/workerów (np. podczas tworzenia `MainWindow` lub `OcrEngine`, korzystając z `cfg.models`).
 
 ## Architektura i pipeline
 Aplikacja jest modułowa i dzieli się na warstwę GUI (PyQt6), logikę OCR oraz narzędzia pomocnicze. Główne kroki przetwarzania: wczytanie plików (PDF/obrazy) → konwersja stron do obrazów (`core/pdf_loader.py`) → preprocessing w OpenCV (`core/image_preprocess.py`) sterowany z GUI → OCR wybranym silnikiem (`core/ocr_engine.py`) w procesach roboczych (`core/worker.py`) → czyszczenie tekstu (`core/postprocess.py`) → eksport (`core/exporter.py`). Logowanie jest scentralizowane w `logging_utils.py` i widoczne w GUI.
