@@ -47,6 +47,9 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 3. Start aplikacji: `python main.py`.
 4. Budowa .exe (przykład): `pyinstaller --noconsole --onefile --name ocr_app main.py` (upewnij się, że katalog z modelami Paddle/EasyOCR jest dołączony, jeśli ich używasz).
 
+### Rozwiązywanie problemów
+- Błąd `ModuleNotFoundError: No module named 'fitz'`: biblioteka PyMuPDF nie jest zainstalowana w środowisku, z którego uruchamiasz aplikację. Zainstaluj ją poleceniem `pip install PyMuPDF` lub ponownie wykonaj `pip install -r requirements.txt`, upewniając się, że korzystasz z tego samego interpretera Pythona, którego używa IDE.
+
 ## Rozwój i dalsze pomysły
 - Profile preprocessingu zapisywane do pliku (np. JSON) i wybierane w GUI.
 - Kolejka zadań (np. Celery/Redis) do batchów w tle i komunikacji sieciowej.
