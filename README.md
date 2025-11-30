@@ -1,5 +1,49 @@
 # Best-in-class OCR GUI (design draft)
 
+## Wymagania systemowe
+- **Systemy**: Windows 10/11 (64-bit), Ubuntu 20.04+/Debian 11+, macOS 12+.
+- **Python**: 3.10–3.12 (64-bit; wymagane dla PyTorch/PyQt6).
+- **Biblioteki systemowe**:
+  - Linux: `libgl1` (PyQt6), `poppler-utils` (dla konwersji PDF jeśli chcesz alternatywę do PyMuPDF), `tesseract-ocr` + pakiety językowe.
+  - Windows: najnowszy **VC++ Redistributable x64** (sekcja niżej), lokalnie zainstalowany Tesseract.
+  - macOS: `brew install tesseract` oraz opcjonalnie `brew install poppler`.
+- **GPU (opcjonalnie)**: karta NVIDIA z obsługą CUDA 11.8+ jeżeli chcesz używać wariantu GPU PyTorch/EasyOCR.
+
+## Instalacja
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+Jeśli chcesz uruchomić build z CUDA, po instalacji wykonaj kroki z sekcji „PyTorch działający na każdym środowisku (CPU i CUDA)”.
+
+## Przykłady użycia
+### GUI / CLI
+- GUI: `python main.py`
+- CLI (tryb wsadowy, przykład OCR jednego pliku bez GUI):
+  ```bash
+  python - <<'PY'
+from ocr_app.core.ocr_engine import OCREngine
+from ocr_app.core.pdf_loader import load_pdf
+
+pages = load_pdf("sample.pdf", dpi=300)
+engine = OCREngine(engine_name="tesseract", languages=["pol", "eng"])
+text = engine.run_ocr(pages)
+print(text[:500])
+PY
+  ```
+
+### API (fragment konfiguracji w kodzie)
+```python
+from ocr_app.config import Config
+
+cfg = Config()
+cfg.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract.exe"
+cfg.default_languages = ["pol", "eng"]
+```
+Następnie przekaż `cfg` do komponentów GUI/workerów (np. podczas tworzenia `MainWindow` lub `OCREngine`).
+
 ## Architektura i pipeline
 Aplikacja jest modułowa i dzieli się na warstwę GUI (PyQt6), logikę OCR oraz narzędzia pomocnicze. Główne kroki przetwarzania: wczytanie plików (PDF/obrazy) → konwersja stron do obrazów (`core/pdf_loader.py`) → preprocessing w OpenCV (`core/image_preprocess.py`) sterowany z GUI → OCR wybranym silnikiem (`core/ocr_engine.py`) w procesach roboczych (`core/worker.py`) → czyszczenie tekstu (`core/postprocess.py`) → eksport (`core/exporter.py`). Logowanie jest scentralizowane w `logging_utils.py` i widoczne w GUI.
 
@@ -15,10 +59,21 @@ ocr_app/
    ├─ image_preprocess.py # grayscale/denoise/threshold/deskew/scale/bg removal
    ├─ ocr_engine.py       # wybór: Tesseract / PaddleOCR / EasyOCR
    ├─ worker.py           # jednostkowy proces stron
-   ├─ postprocess.py      # czyszczenie i łączenie tekstu
-   └─ exporter.py         # zapis TXT/DOCX
+ ├─ postprocess.py      # czyszczenie i łączenie tekstu
+  └─ exporter.py         # zapis TXT/DOCX
 main.py                    # punkt startowy
 ```
+
+### Struktura projektu
+- `ocr_app/core/` – logika OCR (ładowanie PDF, preprocessing, silnik OCR, eksport).
+- `ocr_app/gui/` – komponenty PyQt6 i widoki.
+- `ocr_app/config.py` – konfiguracja domyślna oraz rejestr obsługiwanych języków/silników.
+- `main.py` – bootstrap aplikacji (GUI).
+
+#### Dodawanie nowych języków / modelu
+1. Dodaj kod języka do `available_languages` w `ocr_app/config.py` (oraz pliki językowe Tesseract/PaddleOCR w systemie).
+2. Jeśli to nowy model (np. własny checkpoint EasyOCR/PaddleOCR), skonfiguruj ścieżkę i parametry w `ocr_app/core/ocr_engine.py` oraz w konfiguracji (np. `custom_model_dir`).
+3. Rozszerz GUI o wybór nowego języka/modelu (menu w `ocr_app/gui/main_window.py`) i przekaż ustawienia do workerów.
 
 ## Konfiguracja (config.py / przykład JSON)
 Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesseract_cmd` (ścieżka do binarki na Windows), `pdf_dpi`, `available_languages`, `default_languages`, `max_workers`, `preprocess_options`. Przykładowy JSON, jeśli chcesz mieć zewnętrzny plik:
