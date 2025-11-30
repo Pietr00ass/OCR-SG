@@ -38,6 +38,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.engine_combo = QtWidgets.QComboBox()
         self.engine_combo.addItems(["tesseract", "paddleocr", "easyocr"])
+        default_engine_index = self.engine_combo.findText(config.default_engine)
+        if default_engine_index != -1:
+            self.engine_combo.setCurrentIndex(default_engine_index)
         controls.addWidget(QtWidgets.QLabel("Silnik:"))
         controls.addWidget(self.engine_combo)
 
@@ -186,6 +189,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     languages=languages,
                     preprocess_options=preprocess_opts,
                     tesseract_cmd=config.tesseract_cmd,
+                    model_config=config.models,
                 )
                 processed, _ = preprocess_image(image, preprocess_opts)
                 # Update previews for the last processed page
