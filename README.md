@@ -47,32 +47,10 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 3. Start aplikacji: `python main.py`.
 4. Budowa .exe (przykład): `pyinstaller --noconsole --onefile --name ocr_app main.py` (upewnij się, że katalog z modelami Paddle/EasyOCR jest dołączony, jeśli ich używasz).
 
-### API (FastAPI)
-- Healthcheck: `GET /health` → `{ "status": "ok" }`.
-- OCR: `POST /ocr` przyjmuje **multipart/form-data** (`file` upload) lub JSON `{ "url": "https://...", "engine": "tesseract", "languages": ["pol", "eng"], "dpi": 300 }`.
-- Odpowiedź ma ustandaryzowany format z tekstem, średnią pewnością i ramkami ograniczającymi (bounding boxes):
-  ```json
-  {
-    "source": "plik.pdf",
-    "engine": "tesseract",
-    "languages": ["pol", "eng"],
-    "pages": [
-      {
-        "page": 0,
-        "text": "...",
-        "confidence": 92.4,
-        "boxes": [
-          {"text": "Hello", "bbox": {"x": 10, "y": 15, "width": 40, "height": 12}, "confidence": 95.1}
-        ]
-      }
-    ]
-  }
-  ```
-
-### CLI
-Uruchom `python main.py ocr <ścieżka do pliku lub katalogu> [opcje]`, np.:
-- Jednorazowy plik: `python main.py ocr dokument.pdf --engine tesseract --languages pol eng`
-- Rekurencyjne przetwarzanie katalogu i eksport JSON: `python main.py ocr ./scan --recursive --json-output wynik.json`
+## Ewaluacja CER/WER
+- Przykładowy zestaw referencyjny znajduje się w `samples/ground_truth.json` (pola `id`, `ground_truth`, `prediction`).
+- Uruchomienie: `python scripts/eval_cer.py` (opcjonalnie `--dataset <ścieżka_do_json>`).
+- Na dołączonym zestawie uzyskujemy: **CER = 4.76%**, **WER = 22.73%**.
 
 ### Rozwiązywanie problemów
 - Błąd `ModuleNotFoundError: No module named 'fitz'`: biblioteka PyMuPDF nie jest zainstalowana w środowisku, z którego uruchamiasz aplikację. Zainstaluj ją poleceniem `pip install PyMuPDF` lub ponownie wykonaj `pip install -r requirements.txt`, upewniając się, że korzystasz z tego samego interpretera Pythona, którego używa IDE.
