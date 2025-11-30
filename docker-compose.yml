@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    image: ocr-sg:latest
+    environment:
+      - QT_QPA_PLATFORM=offscreen
+    volumes:
+      - ./:/app
+    command: ["python", "main.py"]
