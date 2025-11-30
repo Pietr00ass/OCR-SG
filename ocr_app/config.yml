@@ -1,0 +1,27 @@
+# Domyślna konfiguracja aplikacji OCR
+models:
+  tesseract_cmd: ""
+  paddleocr:
+    det_model_dir: ./models/paddleocr/det
+    rec_model_dir: ./models/paddleocr/rec
+    cls_model_dir: ./models/paddleocr/cls
+  easyocr:
+    model_dir: ./models/easyocr
+  auto_download_missing: true
+languages:
+  available: [pol, eng]
+  default: [pol, eng]
+pdf:
+  dpi: 300
+app:
+  default_engine: tesseract
+  max_workers: 4
+  temp_dir: ./tmp
+  log_file: ./ocr_app.log
+preprocess:
+  grayscale: true
+  denoise: true
+  threshold: true
+  deskew: true
+  scale_up: true
+  remove_background: false
