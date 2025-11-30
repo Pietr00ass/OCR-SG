@@ -1,19 +1,26 @@
-torch==2.3.0
-torchvision==0.18.0
-torchaudio==2.3.0
-PyQt6>=6.5
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Core dependencies
+torch==2.3.1
+torchvision==0.18.1
+torchaudio==2.3.1
+PyQt6==6.7.1
 pytesseract==0.3.10
-opencv-python==4.9.0.80
-numpy>=1.24
-Pillow==10.3.0
-PyMuPDF>=1.24.0
-docx>=0.2.4
-python-docx>=1.1.0
+opencv-python==4.10.0.84
+numpy==1.26.4
+Pillow==10.4.0
+PyMuPDF==1.24.10
+docx==0.2.4
+python-docx==1.1.2
+
 # PaddleOCR CPU build (avoid installing GPU wheels)
 --find-links https://www.paddlepaddle.org.cn/whl/cpu
-paddlepaddle==2.6.2   # CPU-only runtime required by PaddleOCR
-paddleocr==2.7.0      # optional high-accuracy
+paddlepaddle==2.6.2
+paddleocr==2.7.0
 
-EasyOCR>=1.7.1   # optional high-accuracy
-fastapi>=0.110.0
-uvicorn>=0.29.0
+# Optional high-accuracy OCR
+EasyOCR==1.7.1
+
+# Tooling
+pytest==8.3.3
+ruff==0.6.9
