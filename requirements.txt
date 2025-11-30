@@ -2,7 +2,7 @@
 torch>=2.3.0
 torchvision>=0.18.0
 torchaudio>=2.3.0
-PyQt5>=5.15
+PyQt6>=6.5
 pytesseract>=0.3.10
 opencv-python>=4.9.0.80
 numpy>=1.24

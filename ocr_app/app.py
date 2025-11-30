@@ -17,10 +17,10 @@ def _prepare_qt_environment() -> None:
 
 
 def _import_qt() -> "QtWidgets":
-    """Import PyQt5 with a clear error message for missing system libraries."""
+    """Import PyQt6 with a clear error message for missing system libraries."""
 
     try:
-        from PyQt5 import QtWidgets
+        from PyQt6 import QtWidgets
     except ImportError as exc:  # pragma: no cover - environment-specific
         missing_gl = "libGL.so.1" in str(exc)
         help_hint = (
@@ -28,7 +28,7 @@ def _import_qt() -> "QtWidgets":
             "lub `sudo dnf install mesa-libGL`) i ponów próbę."
         )
         message = (
-            "Nie można załadować PyQt5. "
+            "Nie można załadować PyQt6. "
             + ("Brakuje libGL.so.1. " if missing_gl else "")
             + help_hint
         )
@@ -45,7 +45,7 @@ def main() -> NoReturn:
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
