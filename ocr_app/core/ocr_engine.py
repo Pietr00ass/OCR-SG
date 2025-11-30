@@ -19,9 +19,15 @@ def _safe_import_paddleocr():
         return None
     except OSError as exc:  # pragma: no cover - optional dependency
         logger.warning(
-            "PaddleOCR failed to load (likely missing CPU build or VC++ runtime): %s",
+            "PaddleOCR failed to load (likely missing CPU build or VC++ runtime). %s",
             exc,
         )
+        if "c10.dll" in str(exc).lower():
+            logger.warning(
+                "Detected c10.dll load issue. Reinstall CPU PyTorch/EasyOCR/PaddleOCR: "
+                "pip uninstall -y torch torchvision torchaudio paddlepaddle paddleocr easyocr && "
+                "pip install --no-cache-dir -r requirements.txt"
+            )
         return None
     return PaddleOCR
 
@@ -37,6 +43,12 @@ def _safe_import_easyocr():
         return None
     except OSError as exc:  # pragma: no cover - optional dependency
         logger.warning("EasyOCR failed to load: %s", exc)
+        if "c10.dll" in str(exc).lower():
+            logger.warning(
+                "Detected c10.dll load issue. Reinstall CPU PyTorch/EasyOCR/PaddleOCR: "
+                "pip uninstall -y torch torchvision torchaudio paddlepaddle paddleocr easyocr && "
+                "pip install --no-cache-dir -r requirements.txt"
+            )
         return None
     return easyocr
 
