@@ -49,6 +49,7 @@ Domyślną konfigurację trzymamy w `ocr_app/config.py`. Kluczowe opcje: `tesser
 
 ### Rozwiązywanie problemów
 - Błąd `ModuleNotFoundError: No module named 'fitz'`: biblioteka PyMuPDF nie jest zainstalowana w środowisku, z którego uruchamiasz aplikację. Zainstaluj ją poleceniem `pip install PyMuPDF` lub ponownie wykonaj `pip install -r requirements.txt`, upewniając się, że korzystasz z tego samego interpretera Pythona, którego używa IDE.
+- Błąd `ImportError: libGL.so.1`: system nie posiada biblioteki OpenGL wymaganej przez PyQt5. Na Debianie/Ubuntu zainstaluj ją poleceniem `sudo apt-get install libgl1` (lub na RedHat/Fedora `sudo dnf install mesa-libGL`). W kontenerach warto też ustawić zmienne środowiskowe wymuszające tryb offscreen (robimy to automatycznie w `ocr_app/app.py`).
 
 ### Microsoft Visual Studio (Python) – najczęstsze problemy
 1. **Ustaw właściwe środowisko**: w Visual Studio przejdź do **Python Environments** i wybierz interpretera, którego faktycznie używasz (np. `C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`). Jeśli pracujesz w wirtualnym środowisku, dodaj je jako nowe środowisko i ustaw jako domyślne dla solution.
