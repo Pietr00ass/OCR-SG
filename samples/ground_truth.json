@@ -1,0 +1,17 @@
+[
+  {
+    "id": "sample_1",
+    "ground_truth": "Faktura VAT numer 123/2024 wystawiona dnia 12 maja.",
+    "prediction": "Faktura VAT nr 123/2024 wystawiona dnia 12 maja."
+  },
+  {
+    "id": "sample_2",
+    "ground_truth": "Skanowanie dokumentów przy użyciu OCR znacząco przyspiesza pracę.",
+    "prediction": "Skanowanie dokumentów przy użyciu OCR znaczaco przyspiesza prace."
+  },
+  {
+    "id": "sample_3",
+    "ground_truth": "Kwota do zapłaty: 1 250,50 PLN.",
+    "prediction": "Kwota do zaplaty: 1 250,50 PLN"
+  }
+]
