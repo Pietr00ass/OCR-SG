@@ -1,6 +1,7 @@
 """PyQt6 GUI for the OCR application."""
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import List
 
@@ -10,7 +11,7 @@ from ..config import config
 from ..core import pdf_loader
 from ..core.image_preprocess import preprocess_image
 from ..core.worker import PageTask, process_page
-from ..logging_utils import setup_logging
+from ..logging_utils import record_metrics, setup_logging
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -38,6 +39,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.engine_combo = QtWidgets.QComboBox()
         self.engine_combo.addItems(["tesseract", "paddleocr", "easyocr"])
+        default_engine_index = self.engine_combo.findText(config.default_engine)
+        if default_engine_index != -1:
+            self.engine_combo.setCurrentIndex(default_engine_index)
         controls.addWidget(QtWidgets.QLabel("Silnik:"))
         controls.addWidget(self.engine_combo)
 
@@ -151,12 +155,45 @@ class MainWindow(QtWidgets.QMainWindow):
         preprocess_opts = self._preprocess_options()
 
         results = []
+        metrics_rows = []
+        run_started = time.perf_counter()
         for file_path in files:
+            file_start = time.perf_counter()
+            self.logger.info("Start przetwarzania pliku: %s", file_path)
             if file_path.suffix.lower() == ".pdf":
                 try:
+                    load_start = time.perf_counter()
                     page_images = [img for _, img in pdf_loader.load_pdf_pages(file_path, dpi=dpi)]
+                    load_duration = time.perf_counter() - load_start
+                    self.logger.info(
+                        "Wczytano PDF (%d stron) w %.3fs", len(page_images), load_duration
+                    )
+                    metrics_rows.append(
+                        {
+                            "file": str(file_path),
+                            "page": -1,
+                            "stage": "load",
+                            "duration_seconds": round(load_duration, 3),
+                            "engine": engine_name,
+                            "languages": "+".join(languages),
+                            "success": True,
+                            "error": "",
+                        }
+                    )
                 except Exception as exc:  # pragma: no cover - GUI dialog
                     self.logger.exception("Nie udało się wczytać PDF: %s", file_path)
+                    metrics_rows.append(
+                        {
+                            "file": str(file_path),
+                            "page": -1,
+                            "stage": "load",
+                            "duration_seconds": 0.0,
+                            "engine": engine_name,
+                            "languages": "+".join(languages),
+                            "success": False,
+                            "error": str(exc),
+                        }
+                    )
                     QtWidgets.QMessageBox.critical(
                         self,
                         "Błąd PDF",
@@ -167,9 +204,36 @@ class MainWindow(QtWidgets.QMainWindow):
                 from PIL import Image
 
                 try:
+                    load_start = time.perf_counter()
                     page_images = [Image.open(file_path)]
+                    load_duration = time.perf_counter() - load_start
+                    self.logger.info("Wczytano obraz w %.3fs", load_duration)
+                    metrics_rows.append(
+                        {
+                            "file": str(file_path),
+                            "page": -1,
+                            "stage": "load",
+                            "duration_seconds": round(load_duration, 3),
+                            "engine": engine_name,
+                            "languages": "+".join(languages),
+                            "success": True,
+                            "error": "",
+                        }
+                    )
                 except Exception as exc:  # pragma: no cover - GUI dialog
                     self.logger.exception("Nie udało się wczytać obrazu: %s", file_path)
+                    metrics_rows.append(
+                        {
+                            "file": str(file_path),
+                            "page": -1,
+                            "stage": "load",
+                            "duration_seconds": 0.0,
+                            "engine": engine_name,
+                            "languages": "+".join(languages),
+                            "success": False,
+                            "error": str(exc),
+                        }
+                    )
                     QtWidgets.QMessageBox.critical(
                         self,
                         "Błąd obrazu",
@@ -186,15 +250,92 @@ class MainWindow(QtWidgets.QMainWindow):
                     languages=languages,
                     preprocess_options=preprocess_opts,
                     tesseract_cmd=config.tesseract_cmd,
+                    model_config=config.models,
                 )
+                preprocess_start = time.perf_counter()
                 processed, _ = preprocess_image(image, preprocess_opts)
+                preprocess_duration = time.perf_counter() - preprocess_start
+                self.logger.info(
+                    "Preprocessing %s strona %d trwało %.3fs",
+                    file_path.name,
+                    page_index + 1,
+                    preprocess_duration,
+                )
+                metrics_rows.append(
+                    {
+                        "file": str(file_path),
+                        "page": page_index,
+                        "stage": "preprocess",
+                        "duration_seconds": round(preprocess_duration, 3),
+                        "engine": engine_name,
+                        "languages": "+".join(languages),
+                        "success": True,
+                        "error": "",
+                    }
+                )
+
                 # Update previews for the last processed page
                 self._update_previews(image, processed)
-                result = process_page(image, task, preprocessed=processed)
-                page_texts.append(result.text)
+
+                ocr_start = time.perf_counter()
+                try:
+                    result = process_page(image, task, preprocessed=processed)
+                    ocr_duration = time.perf_counter() - ocr_start
+                    self.logger.info(
+                        "OCR %s strona %d trwało %.3fs",
+                        file_path.name,
+                        page_index + 1,
+                        ocr_duration,
+                    )
+                    metrics_rows.append(
+                        {
+                            "file": str(file_path),
+                            "page": page_index,
+                            "stage": "ocr",
+                            "duration_seconds": round(ocr_duration, 3),
+                            "engine": engine_name,
+                            "languages": "+".join(languages),
+                            "success": True,
+                            "error": "",
+                        }
+                    )
+                    page_texts.append(result.text)
+                except Exception as exc:
+                    ocr_duration = time.perf_counter() - ocr_start
+                    self.logger.exception("Błąd OCR dla %s strona %d", file_path, page_index + 1)
+                    metrics_rows.append(
+                        {
+                            "file": str(file_path),
+                            "page": page_index,
+                            "stage": "ocr",
+                            "duration_seconds": round(ocr_duration, 3),
+                            "engine": engine_name,
+                            "languages": "+".join(languages),
+                            "success": False,
+                            "error": str(exc),
+                        }
+                    )
             results.append("\n\n".join(page_texts))
 
+            total_duration = time.perf_counter() - file_start
+            self.logger.info("Zakończono plik %s w %.3fs", file_path, total_duration)
+            metrics_rows.append(
+                {
+                    "file": str(file_path),
+                    "page": -1,
+                        "stage": "file_total",
+                        "duration_seconds": round(total_duration, 3),
+                        "engine": engine_name,
+                        "languages": "+".join(languages),
+                        "success": True,
+                        "error": "",
+                    }
+                )
+
         self.result_text.setPlainText("\n\n".join(results))
+        total_run = time.perf_counter() - run_started
+        self.logger.info("Cała sesja OCR trwała %.3fs", total_run)
+        record_metrics(metrics_rows)
 
     def _update_previews(self, original, processed) -> None:
         def to_pixmap(img) -> QtGui.QPixmap:
